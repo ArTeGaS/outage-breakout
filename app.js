@@ -1,4 +1,4 @@
-import {Game} from './engine.js?v=20261110a';
+import {Game} from './engine.js?v=20261111b';
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 const root=document.documentElement, canvas=$('#game'), ctx=canvas.getContext('2d');
 let skin='kyiv',theme='dark',notificationUntil=0,last=0,manual=false,pendingViewportFit=false;
@@ -160,7 +160,7 @@ $('#restart').addEventListener('click',()=>{notificationUntil=0;game.reset();dra
 $$('[data-skin-choice]').forEach(el=>el.addEventListener('click',()=>{skin=el.dataset.skinChoice;notificationUntil=0;applyAppearance()}));
 $('#theme-toggle').addEventListener('click',()=>{theme=theme==='dark'?'light':'dark';applyAppearance()});
 const pointer=e=>{const q=canvas.getBoundingClientRect();game.move((e.clientX-q.left)*game.width/q.width)};
-canvas.addEventListener('pointermove',e=>{if(e.pointerType==='mouse'||e.buttons)pointer(e)});
+window.addEventListener('pointermove',e=>{if(e.pointerType==='mouse'||(e.buttons&&canvas.hasPointerCapture(e.pointerId)))pointer(e)});
 canvas.addEventListener('pointerdown',e=>{e.preventDefault();canvas.setPointerCapture(e.pointerId);pointer(e);if(game.mode==='serve')start();canvas.focus({preventScroll:true})});
 canvas.addEventListener('pointerup',e=>{if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId)});
 async function fullscreen() {

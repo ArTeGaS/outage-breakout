@@ -89,7 +89,7 @@ export class Game {
   }
   dock() {this.returnFlight=null;this.ball.x = this.paddle.x; this.ball.y = this.paddle.y - this.ball.r - 3; this.ball.vx=0;this.ball.vy=0;}
   move(x) {
-    this.paddle.x = Math.min(this.width - this.paddle.w/2 - 4, Math.max(this.paddle.w/2 + 4, x));
+    this.paddle.x = Math.min(this.width - this.paddle.w/2, Math.max(this.paddle.w/2, x));
     if (this.mode === 'ready' || this.mode === 'serve') this.dock();
   }
   launch() {
