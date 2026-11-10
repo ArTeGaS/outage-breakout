@@ -110,15 +110,18 @@ function draw() {
   ctx.globalAlpha=1;
   const p=game.paddle,b=game.ball;
   round(p.x-p.w/2,p.y,p.w,p.h,4.5,colors.paddle);
+  ctx.globalAlpha=game.ballOpacity;
   ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fillStyle=colors.ball;ctx.fill();
   if(game.mode==='playing') {
-    ctx.globalAlpha=.16;ctx.beginPath();ctx.arc(b.x-b.vx*.018,b.y-b.vy*.018,b.r*.65,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    ctx.globalAlpha=game.ballOpacity*.16;ctx.beginPath();ctx.arc(b.x-b.vx*.018,b.y-b.vy*.018,b.r*.65,0,Math.PI*2);ctx.fill();
   }
+  ctx.globalAlpha=1;
   $('#notification').classList.toggle('visible',performance.now()<notificationUntil);
 }
 function start() {
   manual=false;game.launch();canvas.focus({preventScroll:true});
-  if(innerWidth<600 && $('.game-shell').getBoundingClientRect().bottom>innerHeight) $('.game-shell').scrollIntoView({block:'start',behavior:'instant'});
+  const bounds=$('.game-shell').getBoundingClientRect();
+  if(innerWidth<600 && (bounds.top<0||bounds.bottom>innerHeight)) $('.game-shell').scrollIntoView({block:'start',behavior:'instant'});
   sync();
 }
 $('#start').addEventListener('click',start);

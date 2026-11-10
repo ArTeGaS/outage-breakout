@@ -1,6 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game} from '../engine.js';
+import {Game,LIGHT_WINDOWS} from '../engine.js';
+function lightPeriods(outages) {
+  const periods=[];
+  for(let i=0;i<outages.length;) {
+    if(outages[i]) {i++;continue}
+    const start=i;while(i<outages.length&&!outages[i])i++;
+    periods.push([start,i]);
+  }
+  return periods;
+}
+test('every new daily schedule has exactly three valid periods of light',()=>{
+  const distinct=new Set();let early=false,late=false;
+  for(let day=1;day<=LIGHT_WINDOWS.length;day++) {
+    const g=new Game();g.reset(day);
+    for(let i=0;i<24;i++) {
+      const periods=lightPeriods(g.outages);assert.equal(periods.length,3);
+      for(const [start,end] of periods) {
+        const length=end-start;
+        assert.ok(length>=3&&length<=5 || length===2&&(start===0||end===48),`invalid light period ${start}-${end}`);
+        early ||= length===2&&start===0;late ||= length===2&&end===48;
+      }
+      distinct.add(JSON.stringify(periods));g.updateSchedule();
+    }
+  }
+  assert.ok(early&&late);assert.equal(distinct.size,LIGHT_WINDOWS.length);
+});
 test('strictly more than 70% triggers a recurring update, with no winning state',()=>{
   const g=new Game();let notifications=0;g.onUpdate=()=>notifications++;
   // Drive only through public hit behavior, never mutate the schedule.
@@ -42,4 +67,38 @@ test('all 24 hours are laid out inside the field on phone and desktop for both s
     for(const r of tiles)assert.ok(r.x>=0&&r.x+r.w<=width&&r.y>=0&&r.y+r.h<=g.gridBottom);
     assert.ok(tiles[columns].y>tiles[0].y);assert.ok(g.paddle.y>g.gridBottom);
   }
+});
+test('after a real updating hit the ball flies through new cells, fades, relights and bounces',()=>{
+  for(const [width,skin] of [[390,'kyiv'],[800,'dtek']]) {
+    const g=new Game();g.layout(width,skin);g.launch();
+    const target=10;assert.equal(g.outages[target],1);
+    while(g.lit<33)g.hit(g.outages.findIndex((off,i)=>off&&i!==target));
+    const q=g.halfRect(target);
+    g.ball.x=q.x+q.w/2;g.ball.y=q.y+q.h+g.ball.r+1;g.ball.vx=0;g.ball.vy=-300;
+    const beforeY=g.ball.y;g.advance(8);
+    assert.equal(g.updates,1);assert.equal(g.mode,'playing');assert.ok(g.returnFlight);
+    assert.ok(Math.abs(g.ball.y-beforeY)<5,'the ball should not teleport');
+    assert.ok(g.ball.vy>0);assert.equal(g.ballOpacity,1);
+    const score=g.score,lives=g.lives,opacities=[];let overlapped=false;
+    for(let i=0;i<500&&g.returnFlight;i++) {
+      const b=g.ball;
+      for(let index=0;index<48;index++)if(g.outages[index]) {
+        const r=g.halfRect(index),x=Math.max(r.x,Math.min(b.x,r.x+r.w)),y=Math.max(r.y,Math.min(b.y,r.y+r.h));
+        overlapped ||= (b.x-x)**2+(b.y-y)**2<b.r*b.r;
+      }
+      opacities.push(g.ballOpacity);const previousY=b.y;g.move(b.x);g.advance(8);
+      if(g.returnFlight) {assert.ok(g.ball.y>previousY);assert.ok(g.ball.vy>0)}
+      assert.equal(g.score,score,'cells must not be hit on the way down');
+    }
+    assert.ok(overlapped,'the test must exercise a flight through an outage cell');
+    assert.equal(g.returnFlight,null);assert.equal(g.ballOpacity,1);assert.ok(g.ball.vy<0);
+    assert.equal(g.lives,lives);assert.ok(Math.min(...opacities)<.35);
+    assert.ok(opacities.at(-1)>.95,'the ball should be almost fully lit before contact');
+  }
+});
+test('losing or resetting during a return clears the fade state',()=>{
+  const g=new Game();g.launch();g.updateSchedule();assert.ok(g.returnFlight);
+  g.ball.y=g.height+10;g.ball.vy=300;g.advance(20);
+  assert.equal(g.mode,'serve');assert.equal(g.lives,2);assert.equal(g.returnFlight,null);assert.equal(g.ballOpacity,1);
+  g.launch();g.updateSchedule();g.reset();assert.equal(g.mode,'ready');assert.equal(g.returnFlight,null);assert.equal(g.ballOpacity,1);
 });

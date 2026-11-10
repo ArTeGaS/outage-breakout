@@ -94,13 +94,15 @@ dialog p {font-size:14px;line-height:1.6;color:var(--muted)}
 .game-shell:fullscreen .status-bar {border:1px solid var(--line);border-bottom:0;border-radius:12px 12px 0 0}
 .game-shell:fullscreen .schedule {border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px}
 @media(max-width:600px) {
-  .app {width:calc(100% - 24px);margin:20px auto 16px}
-  .topbar {display:block;margin-bottom:15px}
-  .heading {margin-bottom:14px}
+  .app {width:calc(100% - 24px);margin:12px auto 16px}
+  .topbar {display:grid;grid-template-columns:minmax(0,1fr) 38px;gap:9px;margin-bottom:12px}
+  .heading {grid-column:1;grid-row:1;margin:0}
+  .heading p {display:none}
   .heading h1 {font-size:22px}
-  .appearance {justify-content:space-between}
-  .skin-picker {flex:1;max-width:320px}
-  .skin-picker button {flex:1}
+  .appearance {display:contents}
+  .theme-toggle {grid-column:2;grid-row:1}
+  .skin-picker {grid-column:1 / -1;grid-row:2;max-width:none}
+  .skin-picker button {flex:1;padding:6px 10px}
   .status-bar {padding:12px;gap:5px}
   .stats {gap:clamp(15px,5vw,28px)}
   .stats strong {font-size:14px}

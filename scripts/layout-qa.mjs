@@ -14,7 +14,7 @@ const palettes={
   'dtek-dark':{on:'#202327',off:'#575b62'}
 };
 try {
-  for(const viewport of [{width:320,height:568},{width:1366,height:768}]) {
+  for(const viewport of [{width:320,height:568},{width:375,height:667},{width:390,height:844},{width:1366,height:768}]) {
     for(const skin of ['dtek','kyiv']) for(const theme of ['light','dark']) {
       const mobile=viewport.width<600;
       const context=await browser.newContext({viewport,deviceScaleFactor:1,isMobile:mobile,hasTouch:mobile});
@@ -31,11 +31,23 @@ try {
           return '#'+[...p].slice(0,3).map(n=>n.toString(16).padStart(2,'0')).join('');
         };
         const status=document.querySelector('.status-bar');
+        const title=document.querySelector('.heading h1').getBoundingClientRect();
+        const toggle=document.querySelector('#theme-toggle').getBoundingClientRect();
+        const picker=document.querySelector('.skin-picker').getBoundingClientRect();
+        const eyebrow=getComputedStyle(document.querySelector('.heading p')).display;
         return {width:s.width,columns:s.columns,overflow:document.documentElement.scrollWidth>innerWidth,statusOverflow:status.scrollWidth>status.clientWidth,
-          on:sample(0,'left'),off:sample(5,'left'),halfOff:sample(12,'left'),halfOn:sample(12,'right')};
+          playSpace:s.height-(16+Math.ceil(24/s.columns)*(th+gap)-gap),
+          title:{top:title.top,bottom:title.bottom},toggle:{top:toggle.top,bottom:toggle.bottom},picker:{top:picker.top,height:picker.height},eyebrow,
+          on:sample(0,'left'),off:sample(5,'left'),halfOff:sample(7,'left'),halfOn:sample(7,'right')};
       });
       assert.equal(metrics.overflow,false,'page overflow');assert.equal(metrics.statusOverflow,false,'status overflow');
       assert.equal(metrics.columns,mobile?4:6);
+      assert.equal(metrics.playSpace,mobile?224:220);
+      if(mobile) {
+        assert.equal(metrics.eyebrow,'none');
+        assert.ok(metrics.toggle.top<metrics.title.bottom&&metrics.toggle.bottom>metrics.title.top,'theme toggle must align with title');
+        assert.ok(metrics.picker.top>=metrics.toggle.bottom&&metrics.picker.height<=38,'skin picker must be below title and compact');
+      }
       const palette=palettes[`${skin}-${theme}`];
       assert.equal(metrics.on,palette.on);assert.equal(metrics.off,palette.off);
       assert.equal(metrics.halfOff,palette.off);assert.equal(metrics.halfOn,palette.on);
@@ -43,6 +55,9 @@ try {
       await page.locator('#start').click();await page.evaluate(()=>advanceTime(0));
       const before=JSON.parse(await page.evaluate(()=>render_game_to_text()));assert.equal(before.mode,'playing');
       if(mobile) {
+        const shell=await page.locator('.game-shell').boundingBox();
+        assert.ok(shell.y>=-1&&shell.y+shell.height<=viewport.height+1,`the entire game should fit after starting: ${JSON.stringify({shell,viewport})}`);
+        await page.screenshot({path:`${out}/${skin}-${theme}-${viewport.width}-viewport.png`});
         const b=await page.locator('#game').boundingBox();await page.touchscreen.tap(b.x+15,b.y+b.height-25);
         const after=JSON.parse(await page.evaluate(()=>render_game_to_text()));assert.ok(after.paddle.x<before.paddle.x,'touch paddle');
       } else {
