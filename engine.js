@@ -22,32 +22,31 @@ export class Game {
   layout(width, skin) {
     const oldW = this.width, oldH = this.height;
     this.width = width; this.skin = skin;
-    this.pad = skin === 'kyiv' ? 20 : Math.max(28, width * .09);
-    this.tileH = Math.min(53, Math.max(35, width * .12));
-    this.gridBottom = skin === 'kyiv' ? 18 + 6 * (this.tileH + 9) - 9 : 106;
-    this.height = skin === 'kyiv' ? this.gridBottom + 230 : (width < 600 ? 380 : 370);
+    this.columns = width >= 570 ? 6 : 4;
+    this.pad = width < 570 ? 12 : 20;
+    this.gap = width < 570 ? 7 : 9;
+    this.tileW = (width - this.pad * 2 - this.gap * (this.columns - 1)) / this.columns;
+    this.tileH = Math.min(58, Math.max(38, this.tileW * .56));
+    this.gridBottom = 16 + Math.ceil(24 / this.columns) * (this.tileH + this.gap) - this.gap;
+    this.height = this.gridBottom + (width < 570 ? 168 : 220);
     this.paddle = {x: this.paddle ? this.paddle.x / oldW * width : width / 2,
       y:this.height - 29, w:Math.min(160, Math.max(76, width * .23)), h:9};
-    const r = skin === 'dtek' ? Math.max(4, Math.min(6, width * .009)) : 5.5;
+    const r = width < 570 ? 5 : 6;
     this.ball = this.ball ? {...this.ball, x:this.ball.x/oldW*width, y:this.ball.y/oldH*this.height, r} : {x:width/2,y:0,vx:0,vy:0,r};
-    this.speed = skin === 'kyiv' ? 300 : 330;
+    this.speed = width < 570 ? 270 : 330;
     this.move(this.paddle.x); this.trail = [];
     if (this.mode === 'playing' || this.mode === 'paused') {
       this.mode = 'paused';
-      // The two skins have different geometry: serve from free space after resize.
+      // A resize can change the number of columns, so resume from free space.
       this.dock(); this.ball.vx = this.speed * .31;
       this.ball.vy = -Math.sqrt(this.speed ** 2 - this.ball.vx ** 2);
     }
     if (this.mode === 'ready' || this.mode === 'serve') this.dock();
   }
   rect(hour) {
-    if (this.skin === 'kyiv') {
-      const gap = 9, w = (this.width - 40 - 3 * gap) / 4;
-      return {x:20 + hour % 4 * (w + gap), y:18 + Math.floor(hour/4) * (this.tileH + gap), w, h:this.tileH};
-    }
-    const labelW = this.width < 600 ? 29 : 91;
-    const w = (this.width - labelW - 1) / 24;
-    return {x:labelW + hour*w,y:65,w,h:41};
+    return {x:this.pad + hour % this.columns * (this.tileW + this.gap),
+      y:16 + Math.floor(hour / this.columns) * (this.tileH + this.gap),
+      w:this.tileW,h:this.tileH};
   }
   halfRect(index) {
     const rect = this.rect(Math.floor(index / 2));
@@ -100,8 +99,7 @@ export class Game {
     b.x+=b.vx*dt; b.y+=b.vy*dt;
     if (b.x < b.r) {b.x=b.r;b.vx=Math.abs(b.vx)}
     if (b.x > this.width-b.r) {b.x=this.width-b.r;b.vx=-Math.abs(b.vx)}
-    const ceiling = this.skin === 'dtek' ? 64 : b.r;
-    if (b.y < ceiling+b.r) {b.y=ceiling+b.r;b.vy=Math.abs(b.vy)}
+    if (b.y < b.r) {b.y=b.r;b.vy=Math.abs(b.vy)}
     if (b.vy>0 && oldY+b.r<=p.y && b.y+b.r>=p.y && b.x+b.r>p.x-p.w/2 && b.x-b.r<p.x+p.w/2) {
       const angle=Math.max(-1,Math.min(1,(b.x-p.x)/(p.w/2)))*1.05;
       const speed=this.speed + Math.min(70,this.score*.08);
@@ -131,7 +129,7 @@ export class Game {
   }
   snapshot() {
     return {coordinates:'origin top-left; x right, y down; CSS pixels',mode:this.mode,skin:this.skin,
-      width:this.width,height:this.height,day:this.day,score:this.score,lives:this.lives,
+      width:this.width,height:this.height,columns:this.columns,day:this.day,score:this.score,lives:this.lives,
       lightHours:this.lit/2,updates:this.updates,ball:{...this.ball},paddle:{...this.paddle},
       outages:this.outages.map((off,index)=>off?{index,...this.halfRect(index)}:null).filter(Boolean)};
   }

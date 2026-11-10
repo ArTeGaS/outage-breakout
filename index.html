@@ -4,80 +4,60 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#12121a">
-  <meta name="description" content="Арканоїд у вигляді графіка відключень. Два оформлення, світла й темна теми.">
+  <meta name="description" content="Арканоїд у стилі графіків відключень.">
   <title>Графік відключень — арканоїд</title>
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-  <div class="preferences" aria-label="Оформлення гри">
-    <div class="segmented skin-picker" role="group" aria-label="Візуал">
-      <button type="button" data-skin-choice="dtek" aria-pressed="false">DTEK</button>
-      <button type="button" data-skin-choice="kyiv" aria-pressed="true">Київ Цифровий</button>
-    </div>
-    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Увімкнути світлу тему" title="Світла тема"></button>
-  </div>
-  <main>
-    <header class="page-heading">
-      <svg class="kyiv-only back-icon" width="25" height="25" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H4m7-8-8 8 8 8"/></svg>
-      <h1>Графік відключень<span class="dtek-only">:</span></h1>
-      <button id="about-open" class="info-button" aria-label="Про гру" type="button">i</button>
+  <div class="app">
+    <header class="topbar">
+      <div class="heading"><p>АРКАНОЇД</p><h1>Графік відключень</h1></div>
+      <div class="appearance" aria-label="Оформлення гри">
+        <div class="skin-picker" role="group" aria-label="Стиль">
+          <button type="button" data-skin-choice="dtek" aria-pressed="false">DTEK</button>
+          <button type="button" data-skin-choice="kyiv" aria-pressed="true">Київ Цифровий</button>
+        </div>
+        <button id="theme-toggle" class="icon-button theme-toggle" type="button" aria-label="Увімкнути світлу тему" title="Світла тема"></button>
+      </div>
     </header>
 
-    <section class="address-card kyiv-only" aria-label="Адреса">
-      <p>Індивідуальний графік включень</p>
-      <h2>вул. Енергетична, 24</h2>
-      <div class="status-pill"><span class="off-icon" aria-hidden="true">↯</span> <span id="kyiv-status">немає світла до 22:30</span></div>
-    </section>
-
-    <section class="dtek-details dtek-only">
-      <div class="address-fields">
-        <div><label for="street">Оберіть вулицю</label><select id="street" aria-label="Демонстраційна вулиця"><option>вул. Енергетична</option></select></div>
-        <div><label for="house">Оберіть номер будинку</label><select id="house"><option>24</option></select></div>
-      </div>
-      <div class="notice"><p>Відбивайте м’яч платформою, щоб прибирати відключення з графіка. Рухайте мишею, пальцем або клавішами ← →.</p><p>Дата оновлення інформації — <span class="updated-at"></span></p></div>
-      <h2>Графік відключень:</h2>
-    </section>
-
-    <section class="schedule" aria-label="Ігрове поле">
-      <div class="week-tabs kyiv-only" role="group" aria-label="День графіка">
-        <button data-day="0">Пн</button><button data-day="1" class="selected">Вт</button><button data-day="2">Ср</button><button data-day="3">Чт</button><button data-day="4">Пт</button><button data-day="5">Сб</button><button data-day="6">Нд</button>
-      </div>
-      <div class="date-tabs dtek-only" role="group" aria-label="День графіка">
-        <button data-day="1" class="selected"><span class="off-icon" aria-hidden="true">↯</span> на сьогодні <span id="today-date"></span></button>
-        <button data-day="2"><span class="off-icon" aria-hidden="true">↯</span> на завтра <span id="tomorrow-date"></span></button>
-      </div>
-      <p class="update-caption dtek-only"><span aria-hidden="true">ⓘ</span> Дата та час останнього оновлення інформації на графіку: <strong class="updated-at"></strong></p>
-      <div class="game-wrap">
-        <canvas id="game" tabindex="0" aria-label="Арканоїд. Рухайте платформу мишею, пальцем або стрілками. Пробіл — запуск чи пауза."></canvas>
-        <div id="notification" class="notification" role="status" aria-live="polite"></div>
-        <div id="overlay" class="overlay">
-          <div class="overlay-card">
-            <span class="overlay-eyebrow">АРКАНОЇД</span>
-            <h2 id="overlay-title">Графік відключень</h2>
-            <p id="overlay-copy">Відбивайте м’яч і прибирайте відключення з графіка.</p>
-            <button id="start" type="button" class="primary">Почати гру <span aria-hidden="true">↗</span></button>
-            <p class="input-hint">Миша · ← → · дотик</p>
+    <main>
+      <section class="game-shell" aria-label="Арканоїд">
+        <div class="status-bar">
+          <div class="stats">
+            <div><span>Світло</span><strong id="light-stat">8 / 24 год</strong></div>
+            <div><span>Рахунок</span><strong id="score-stat">0</strong></div>
+            <div><span>Спроби</span><strong id="lives-stat">3</strong></div>
+          </div>
+          <div class="action-buttons" aria-label="Керування грою">
+            <button id="pause" class="icon-button" type="button" aria-label="Пауза" title="Пауза (пробіл)" disabled>Ⅱ</button>
+            <button id="restart" class="icon-button" type="button" aria-label="Почати заново" title="Почати заново">↻</button>
+            <button id="fullscreen" class="icon-button" type="button" aria-label="На весь екран" title="На весь екран (F)">⛶</button>
           </div>
         </div>
+        <div class="schedule">
+          <div class="game-wrap">
+            <canvas id="game" tabindex="0" aria-label="Ігрове поле: 24 години доби. Рухайте платформу мишею, пальцем або стрілками. Пробіл — запуск чи пауза."></canvas>
+            <div id="notification" class="notification" role="status" aria-live="polite"></div>
+            <div id="overlay" class="overlay">
+              <div class="overlay-content">
+                <h2 id="overlay-title" hidden></h2>
+                <p id="overlay-copy">Відбивайте м’яч і вмикайте світло.</p>
+                <button id="start" type="button" class="primary">Почати гру</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <div class="below-game">
+        <div class="legend" aria-label="Позначення"><span><i class="off-swatch"></i>Немає світла</span><span><i class="on-swatch"></i>Є світло</span></div>
+        <span class="controls-hint">Миша · дотик · ← →</span>
       </div>
-      <div class="legend" aria-label="Позначення графіка">
-        <span class="kyiv-only"><i class="current-swatch"></i>поточний час</span>
-        <span><i class="on-swatch"></i><span class="kyiv-only">є світло</span><span class="dtek-only">Світло є</span></span>
-        <span><i class="off-swatch"></i><span class="kyiv-only">немає світла</span><span class="dtek-only">Світла немає</span></span>
-        <span class="kyiv-only"><i class="maybe-swatch"></i>можливе відключення</span>
-        <span class="dtek-only"><i class="half-swatch"></i>Світла не буде перші 30 хв.</span>
-        <span class="dtek-only"><i class="half-swatch second"></i>Світла не буде другі 30 хв.</span>
-      </div>
-    </section>
-
-    <section class="game-controls" aria-label="Стан і керування">
-      <div class="stats"><div><span>Світло</span><strong id="light-stat">8 / 24 год</strong></div><div><span>Рахунок</span><strong id="score-stat">0</strong></div><div><span>Спроби</span><strong id="lives-stat">3</strong></div></div>
-      <div class="action-buttons"><button id="pause" type="button" aria-label="Пауза" title="Пауза (пробіл)" disabled>Ⅱ</button><button id="restart" type="button" aria-label="Почати заново" title="Почати заново">↻</button><button id="fullscreen" type="button" aria-label="На весь екран" title="На весь екран (F)">⛶</button></div>
-    </section>
-    <footer><span>Неофіційна гра · демонстраційний графік</span><a href="https://github.com/ArTeGaS/outage-breakout" target="_blank" rel="noopener noreferrer">GitHub ↗</a></footer>
-  </main>
-  <dialog id="about"><button id="about-close" aria-label="Закрити" class="dialog-close">×</button><h2>Графік відключень</h2><p>Арканоїд із двома варіантами оформлення. Рухайте платформу мишею, пальцем або стрілками. Пробіл запускає м’яч і ставить гру на паузу.</p><p>Неофіційний некомерційний проєкт. Дані та адреса демонстраційні. Гра не пов’язана з ДТЕК або сервісом «Київ Цифровий».</p><p>F — на весь екран. Escape — пауза або вихід із повного екрана.</p></dialog>
+    </main>
+    <footer><span>Неофіційна гра</span><div><button id="about-open" type="button">Про гру</button><a href="https://github.com/ArTeGaS/outage-breakout" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></footer>
+  </div>
+  <dialog id="about"><button id="about-close" aria-label="Закрити" class="dialog-close">×</button><h2>Графік відключень</h2><p>Відбивайте м’яч і вмикайте світло у клітинках графіка. Поле показує одну добу; кожне влучання повертає пів години світла.</p><p>Керування: миша, дотик або стрілки. Пробіл — запуск і пауза, F — повний екран.</p><p>Неофіційна гра, не пов’язана з ДТЕК або сервісом «Київ Цифровий». Графік демонстраційний.</p></dialog>
   <script type="module" src="./app.js"></script>
 </body>
 </html>

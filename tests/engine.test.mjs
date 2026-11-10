@@ -16,7 +16,7 @@ test('half-hour hits score once; clearing one half leaves the other intact',()=>
   const g=new Game();g.hit(10);assert.equal(g.outages[10],0);assert.equal(g.outages[11],1);assert.equal(g.score,10);g.hit(10);assert.equal(g.score,10);
 });
 test('real ball collision clears a half-hour and bounces down',()=>{
-  for(const skin of ['kyiv','dtek']){const g=new Game();g.layout(skin==='kyiv'?390:900,skin);g.launch();const index=skin==='kyiv'?42:10;const q=g.halfRect(index);
+  for(const skin of ['kyiv','dtek']){const g=new Game();g.layout(skin==='kyiv'?390:900,skin);g.launch();const index=42;const q=g.halfRect(index);
     g.ball.x=q.x+q.w/2;g.ball.y=q.y+q.h+g.ball.r+1;g.ball.vx=0;g.ball.vy=-300;
     g.advance(20);assert.equal(g.outages[index],0);assert.equal(g.score,10);assert.ok(g.ball.vy>0);
   }
@@ -33,4 +33,13 @@ test('appearance changes preserve progress, pause and keep mobile collisions in 
   for(let i=0;i<48;i++){const r=g.halfRect(i);assert.ok(r.x>=0&&r.x+r.w<=320&&r.y+r.h<g.height)}
   assert.ok(g.ball.y-g.ball.r>g.gridBottom);assert.ok(g.ball.vy<0);
   g.launch();g.advance(10);assert.equal(g.score,10);
+});
+test('all 24 hours are laid out inside the field on phone and desktop for both skins',()=>{
+  for(const skin of ['kyiv','dtek']) for(const [width,columns] of [[320,4],[390,4],[620,6],[800,6]]){
+    const g=new Game();g.layout(width,skin);assert.equal(g.columns,columns);
+    const tiles=Array.from({length:24},(_,hour)=>g.rect(hour));
+    assert.equal(new Set(tiles.map(r=>`${r.x},${r.y}`)).size,24);
+    for(const r of tiles)assert.ok(r.x>=0&&r.x+r.w<=width&&r.y>=0&&r.y+r.h<=g.gridBottom);
+    assert.ok(tiles[columns].y>tiles[0].y);assert.ok(g.paddle.y>g.gridBottom);
+  }
 });
