@@ -68,6 +68,25 @@ test('all 24 hours are laid out inside the field on phone and desktop for both s
     assert.ok(tiles[columns].y>tiles[0].y);assert.ok(g.paddle.y>g.gridBottom);
   }
 });
+test('a height-only viewport change preserves a live ball and waits if the paddle would cross it',()=>{
+  const g=new Game();g.layout(334,'kyiv');g.launch();
+  const initialHeight=g.height,desiredLimit=g.gridBottom+150;
+  g.ball.y=g.gridBottom+20;g.ball.x=160;g.ball.vx=80;g.ball.vy=200;
+  const before={...g.ball},score=g.score,lives=g.lives;
+  assert.equal(g.fitHeight(desiredLimit),true);
+  assert.ok(g.height<initialHeight);assert.deepEqual(g.ball,before);
+  assert.equal(g.mode,'playing');assert.equal(g.score,score);assert.equal(g.lives,lives);
+  assert.equal(g.fitHeight(Infinity),true);
+  g.ball.y=g.paddle.y-10;const nearPaddle={...g.ball};
+  assert.equal(g.fitHeight(desiredLimit),false);assert.equal(g.height,initialHeight);assert.deepEqual(g.ball,nearPaddle);
+  g.ball.y=g.gridBottom+20;const safe={...g.ball};
+  assert.equal(g.fitHeight(desiredLimit),true);assert.deepEqual(g.ball,safe);assert.equal(g.mode,'playing');
+});
+test('height changes wait until a fading ball has returned',()=>{
+  const g=new Game();g.layout(334,'kyiv');g.launch();g.ball.y=g.gridBottom+20;g.updateSchedule();
+  const before={...g.ball},height=g.height;
+  assert.equal(g.fitHeight(g.gridBottom+150),false);assert.equal(g.height,height);assert.deepEqual(g.ball,before);assert.ok(g.returnFlight);
+});
 test('after a real updating hit the ball flies through new cells, fades, relights and bounces',()=>{
   for(const [width,skin] of [[390,'kyiv'],[800,'dtek']]) {
     const g=new Game();g.layout(width,skin);g.launch();

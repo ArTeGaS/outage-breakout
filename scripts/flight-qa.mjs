@@ -9,6 +9,7 @@ await mkdir(out,{recursive:true});
 const results=[];
 try {
   for(const scenario of [
+    {name:'custom-tab-kyiv-dark',width:360,height:689,skin:'kyiv',theme:'dark'},
     {name:'mobile-kyiv-dark',width:390,height:844,skin:'kyiv',theme:'dark'},
     {name:'desktop-dtek-light',width:1366,height:768,skin:'dtek',theme:'light'}
   ]) {

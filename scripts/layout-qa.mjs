@@ -14,7 +14,7 @@ const palettes={
   'dtek-dark':{on:'#202327',off:'#575b62'}
 };
 try {
-  for(const viewport of [{width:320,height:568},{width:375,height:667},{width:390,height:844},{width:1366,height:768}]) {
+  for(const viewport of [{width:320,height:568},{width:360,height:689},{width:375,height:667},{width:390,height:720},{width:390,height:844},{width:1366,height:768}]) {
     for(const skin of ['dtek','kyiv']) for(const theme of ['light','dark']) {
       const mobile=viewport.width<600;
       const context=await browser.newContext({viewport,deviceScaleFactor:1,isMobile:mobile,hasTouch:mobile});
@@ -34,30 +34,41 @@ try {
         const title=document.querySelector('.heading h1').getBoundingClientRect();
         const toggle=document.querySelector('#theme-toggle').getBoundingClientRect();
         const picker=document.querySelector('.skin-picker').getBoundingClientRect();
+        const overlay=document.querySelector('#overlay').getBoundingClientRect();
+        const gameBox=canvas.getBoundingClientRect();
+        const footer=document.querySelector('footer').getBoundingClientRect();
+        const legend=document.querySelector('.below-game').getBoundingClientRect();
         const eyebrow=getComputedStyle(document.querySelector('.heading p')).display;
         return {width:s.width,columns:s.columns,overflow:document.documentElement.scrollWidth>innerWidth,statusOverflow:status.scrollWidth>status.clientWidth,
           playSpace:s.height-(16+Math.ceil(24/s.columns)*(th+gap)-gap),
+          overlayCenter:overlay.top+overlay.height/2,gameCenter:gameBox.top+gameBox.height/2,footerBottom:footer.bottom,legendBottom:legend.bottom,
           title:{top:title.top,bottom:title.bottom},toggle:{top:toggle.top,bottom:toggle.bottom},picker:{top:picker.top,height:picker.height},eyebrow,
           on:sample(0,'left'),off:sample(5,'left'),halfOff:sample(7,'left'),halfOn:sample(7,'right')};
       });
       assert.equal(metrics.overflow,false,'page overflow');assert.equal(metrics.statusOverflow,false,'status overflow');
       assert.equal(metrics.columns,mobile?4:6);
-      assert.equal(metrics.playSpace,mobile?224:220);
+      if(mobile) assert.ok(metrics.playSpace>=150&&metrics.playSpace<=224);
+      else assert.equal(metrics.playSpace,220);
       if(mobile) {
         assert.equal(metrics.eyebrow,'none');
+        assert.ok(Math.abs(metrics.overlayCenter-metrics.gameCenter)<2,'start control must be centered in the field');
         assert.ok(metrics.toggle.top<metrics.title.bottom&&metrics.toggle.bottom>metrics.title.top,'theme toggle must align with title');
         assert.ok(metrics.picker.top>=metrics.toggle.bottom&&metrics.picker.height<=38,'skin picker must be below title and compact');
+        if(viewport.width===360&&viewport.height===689)assert.ok(metrics.footerBottom<=viewport.height-8&&metrics.legendBottom<=viewport.height-8,'custom-tab viewport must show lower content');
       }
       const palette=palettes[`${skin}-${theme}`];
       assert.equal(metrics.on,palette.on);assert.equal(metrics.off,palette.off);
       assert.equal(metrics.halfOff,palette.off);assert.equal(metrics.halfOn,palette.on);
-      await page.screenshot({path:`${out}/${skin}-${theme}-${viewport.width}-ready.png`,fullPage:true});
+      const name=`${skin}-${theme}-${viewport.width}x${viewport.height}`;
+      await page.screenshot({path:`${out}/${name}-ready.png`,fullPage:true});
       await page.locator('#start').click();await page.evaluate(()=>advanceTime(0));
       const before=JSON.parse(await page.evaluate(()=>render_game_to_text()));assert.equal(before.mode,'playing');
       if(mobile) {
         const shell=await page.locator('.game-shell').boundingBox();
         assert.ok(shell.y>=-1&&shell.y+shell.height<=viewport.height+1,`the entire game should fit after starting: ${JSON.stringify({shell,viewport})}`);
-        await page.screenshot({path:`${out}/${skin}-${theme}-${viewport.width}-viewport.png`});
+        const legend=await page.locator('.below-game').boundingBox(),footer=await page.locator('footer').boundingBox();
+        assert.ok(legend.y+legend.height<=viewport.height-1&&footer.y+footer.height<=viewport.height-1,'legend and footer must be visible after starting');
+        await page.screenshot({path:`${out}/${name}-viewport.png`});
         const b=await page.locator('#game').boundingBox();await page.touchscreen.tap(b.x+15,b.y+b.height-25);
         const after=JSON.parse(await page.evaluate(()=>render_game_to_text()));assert.ok(after.paddle.x<before.paddle.x,'touch paddle');
       } else {
@@ -65,7 +76,7 @@ try {
         const after=JSON.parse(await page.evaluate(()=>render_game_to_text()));assert.ok(after.paddle.x>before.paddle.x,'keyboard paddle');
       }
       await page.evaluate(()=>advanceTime(800));
-      await page.screenshot({path:`${out}/${skin}-${theme}-${viewport.width}-playing.png`,fullPage:true});
+      await page.screenshot({path:`${out}/${name}-playing.png`,fullPage:true});
       assert.deepEqual(errors,[]);results.push({viewport,skin,theme,metrics,controls:'passed',errors});await context.close();
     }
   }

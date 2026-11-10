@@ -25,7 +25,7 @@ npm start
 
 Перевірка браузера: `node scripts/browser-qa.mjs` із доступним пакетом `playwright`. За потреби змінні `PLAYWRIGHT_MODULE` та `CHROMIUM_PATH` задають шляхи до вже встановлених Playwright і Chromium. Знімки та результати пишуться в ігнорований Git каталог `output/playwright`.
 
-Перевірка тем і адаптивного поля: `node scripts/layout-qa.mjs`. Перевірка польоту кульки після оновлення: `node scripts/flight-qa.mjs`.
+Перевірка тем і адаптивного поля: `node scripts/layout-qa.mjs`. Зміна висоти екрана та сенсорне керування: `node scripts/viewport-qa.mjs`. Політ кульки після оновлення: `node scripts/flight-qa.mjs`.
 
 Сайт працює на звичайному статичному хостингу, без сервера, аналітики та звернень до сервісів енергопостачання. GitHub Pages публікує корінь гілки `main`.
 

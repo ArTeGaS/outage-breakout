@@ -1,7 +1,7 @@
-import {Game} from './engine.js';
+import {Game} from './engine.js?v=20261110a';
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 const root=document.documentElement, canvas=$('#game'), ctx=canvas.getContext('2d');
-let skin='kyiv',theme='dark',notificationUntil=0,last=0,manual=false;
+let skin='kyiv',theme='dark',notificationUntil=0,last=0,manual=false,pendingViewportFit=false;
 try {skin=localStorage.getItem('outage-skin')||skin;theme=localStorage.getItem('outage-theme')||theme} catch {}
 const params=new URLSearchParams(location.search);
 skin=params.get('skin')||skin;theme=params.get('theme')||theme;
@@ -31,18 +31,41 @@ function applyAppearance() {
   try {localStorage.setItem('outage-skin',skin);localStorage.setItem('outage-theme',theme)} catch {}
   resize();sync();draw();
 }
+function canvasHeightLimit() {
+  if(innerWidth>600) return Infinity;
+  const measure=$('.viewport-measure'),canvasBounds=canvas.getBoundingClientRect(),footerBounds=$('footer').getBoundingClientRect();
+  const smallHeight=measure.getBoundingClientRect().height||innerHeight;
+  const visibleHeight=Math.min(innerHeight,window.visualViewport?.height||innerHeight,smallHeight);
+  const safeBottom=parseFloat(getComputedStyle(measure).paddingBottom)||0;
+  if(document.fullscreenElement) return visibleHeight-$('.status-bar').getBoundingClientRect().height-24-safeBottom;
+  const afterCanvas=Math.max(0,footerBounds.bottom-canvasBounds.bottom);
+  return visibleHeight-(canvasBounds.top+scrollY)-afterCanvas-Math.max(16,safeBottom+8);
+}
 function resize() {
   const width=canvas.parentElement.clientWidth;
   if(width<1) return;
-  if(Math.abs(width-game.width)>.5||game.skin!==skin) game.layout(width,skin);
+  const limit=canvasHeightLimit();
+  const widthOrSkinChanged=Math.abs(width-game.width)>.5||game.skin!==skin;
+  if(widthOrSkinChanged) {
+    pendingViewportFit=false;
+    game.layout(width,skin,limit);
+  } else {
+    // Delay a height change only while the ball is in its path or returning.
+    pendingViewportFit=!game.fitHeight(limit);
+  }
   const dpr=Math.min(3,window.devicePixelRatio||1);
-  canvas.style.height=game.height+'px';
-  canvas.width=Math.round(width*dpr);canvas.height=Math.round(game.height*dpr);
-  ctx.setTransform(dpr,0,0,dpr,0,0);sync();draw();
+  const pixelWidth=Math.round(width*dpr),pixelHeight=Math.round(game.height*dpr);
+  if(canvas.width!==pixelWidth||canvas.height!==pixelHeight||canvas.style.height!==game.height+'px') {
+    canvas.style.height=game.height+'px';canvas.width=pixelWidth;canvas.height=pixelHeight;
+    ctx.setTransform(dpr,0,0,dpr,0,0);sync();draw();
+  }
 }
 function sync() {
   // The constructor can call this before the game binding is initialized.
   if(!window.render_game_to_text) return;
+  if(pendingViewportFit&&!['playing','paused'].includes(game.mode)) {
+    pendingViewportFit=false;queueMicrotask(resize);
+  }
   $('#light-stat').textContent=`${(game.lit/2).toLocaleString('uk-UA')} / 24 год`;
   $('#score-stat').textContent=game.score;$('#lives-stat').textContent=game.lives;
   $('#pause').disabled=!['playing','paused'].includes(game.mode);
@@ -119,9 +142,16 @@ function draw() {
   $('#notification').classList.toggle('visible',performance.now()<notificationUntil);
 }
 function start() {
+  if(pendingViewportFit&&!['playing','paused'].includes(game.mode)) resize();
   manual=false;game.launch();canvas.focus({preventScroll:true});
   const bounds=$('.game-shell').getBoundingClientRect();
-  if(innerWidth<600 && (bounds.top<0||bounds.bottom>innerHeight)) $('.game-shell').scrollIntoView({block:'start',behavior:'instant'});
+  const visibleHeight=Math.min(innerHeight,window.visualViewport?.height||innerHeight);
+  const footerBottom=$('footer').getBoundingClientRect().bottom;
+  if(innerWidth<=600&&(bounds.top<0||footerBottom>visibleHeight-8)) {
+    const shift=footerBottom-visibleHeight+8;
+    if(bounds.top>=0&&shift>0&&shift<=bounds.top) window.scrollBy({top:shift,behavior:'instant'});
+    else $('.game-shell').scrollIntoView({block:'start',behavior:'instant'});
+  }
   sync();
 }
 $('#start').addEventListener('click',start);
@@ -155,9 +185,13 @@ window.addEventListener('blur',blur);document.addEventListener('visibilitychange
 $('#about-open').addEventListener('click',()=>{game.pause();$('#about').showModal()});
 $('#about-close').addEventListener('click',()=>$('#about').close());
 new ResizeObserver(resize).observe(canvas.parentElement);
+window.addEventListener('resize',resize);
+window.visualViewport?.addEventListener('resize',resize);
 function frame(time) {
   const dt=Math.min(40,time-(last||time));last=time;
   if(!manual) game.advance(dt);
+  if(pendingViewportFit&&game.mode==='playing'&&!game.returnFlight&&
+    game.ball.y+game.ball.r<Math.min(game.paddle.y,game.heightForLimit(game.maxCanvasHeight)-29)-2) resize();
   draw();requestAnimationFrame(frame);
 }
 applyAppearance();document.fonts.ready.then(draw);requestAnimationFrame(frame);

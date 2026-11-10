@@ -21,7 +21,9 @@ for(const viewport of [{width:1440,height:1100},{width:390,height:844}]){
     const canvasBox=await page.locator('#game').boundingBox();
     const ready=JSON.parse(await page.evaluate(()=>window.render_game_to_text()));
     const gridBottom=Math.max(...ready.outages.map(q=>q.y+q.h));
-    assert.ok(overlayBox.y>=canvasBox.y+gridBottom,'start overlay hides schedule');
+    if(viewport.width<600) {
+      assert.ok(Math.abs((overlayBox.y+overlayBox.height/2)-(canvasBox.y+canvasBox.height/2))<2,'start overlay is not centered');
+    } else assert.ok(overlayBox.y>=canvasBox.y+gridBottom,'desktop start overlay hides schedule');
     await page.screenshot({path:`${out}/${name}-ready.png`,fullPage:true});
     await page.locator('#start').click();
     await page.evaluate(()=>window.advanceTime(150));

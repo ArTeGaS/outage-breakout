@@ -27,16 +27,17 @@ export class Game {
     this.elapsed = 0; this.flashes = []; this.trail = []; this.returnFlight = null;
     this.layout(this.width, this.skin); this.onChange();
   }
-  layout(width, skin) {
+  layout(width, skin, maxCanvasHeight = this.maxCanvasHeight ?? Infinity) {
     const oldW = this.width, oldH = this.height;
     this.width = width; this.skin = skin;
+    this.maxCanvasHeight = maxCanvasHeight;
     this.columns = width >= 570 ? 6 : 4;
     this.pad = width < 570 ? 12 : 20;
     this.gap = width < 570 ? 7 : 9;
     this.tileW = (width - this.pad * 2 - this.gap * (this.columns - 1)) / this.columns;
     this.tileH = Math.min(58, Math.max(38, this.tileW * .56));
     this.gridBottom = 16 + Math.ceil(24 / this.columns) * (this.tileH + this.gap) - this.gap;
-    this.height = this.gridBottom + (width < 570 ? 224 : 220);
+    this.height = this.heightForLimit(maxCanvasHeight);
     this.paddle = {x: this.paddle ? this.paddle.x / oldW * width : width / 2,
       y:this.height - 29, w:Math.min(160, Math.max(76, width * .23)), h:9};
     const r = width < 570 ? 5 : 6;
@@ -50,6 +51,23 @@ export class Game {
       this.ball.vy = -Math.sqrt(this.speed ** 2 - this.ball.vx ** 2);
     }
     if (this.mode === 'ready' || this.mode === 'serve') this.dock();
+  }
+  heightForLimit(maxCanvasHeight) {
+    const preferred = this.width < 570 ? 224 : 220;
+    const available = Number.isFinite(maxCanvasHeight) ? maxCanvasHeight - this.gridBottom : preferred;
+    return this.gridBottom + Math.max(150, Math.min(preferred, available));
+  }
+  fitHeight(maxCanvasHeight) {
+    this.maxCanvasHeight = maxCanvasHeight;
+    const nextHeight = this.heightForLimit(maxCanvasHeight);
+    if (Math.abs(nextHeight - this.height) <= .5) return true;
+    const nextPaddleY = nextHeight - 29;
+    if (['playing','paused'].includes(this.mode) &&
+        (this.returnFlight || this.ball.y + this.ball.r >= Math.min(this.paddle.y,nextPaddleY) - 2)) return false;
+    // A height-only change moves the platform, never the ball or the score.
+    this.height = nextHeight; this.paddle.y = nextPaddleY;
+    if (['ready','serve','over'].includes(this.mode)) this.dock();
+    return true;
   }
   rect(hour) {
     return {x:this.pad + hour % this.columns * (this.tileW + this.gap),
