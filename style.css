@@ -85,6 +85,9 @@ footer {display:flex;justify-content:space-between;gap:15px;margin:26px 2px 0;co
 footer div {display:flex;gap:18px}
 footer button,footer a {padding:0;border:0;background:none;color:inherit;text-decoration:none}
 footer button:hover,footer a:hover {text-decoration:underline}
+.language-picker {display:flex;gap:9px;align-items:center}
+.language-picker button {font-weight:500;color:var(--muted)}
+.language-picker button[aria-pressed="true"] {color:var(--text);text-decoration:underline;text-underline-offset:3px}
 dialog {width:min(440px,100% - 32px);border:1px solid var(--line);border-radius:14px;padding:25px 28px;background:var(--panel);color:var(--text);box-shadow:0 12px 40px #0004}
 dialog::backdrop {background:#0009}
 dialog h2 {font-size:20px;margin:3px 0 17px}
@@ -123,5 +126,8 @@ dialog p {font-size:14px;line-height:1.6;color:var(--muted)}
   .stats strong {font-size:13px}
   .action-buttons .icon-button {width:29px}
   .controls-hint {display:none}
+  footer {font-size:10px;gap:8px}
+  footer div {gap:10px}
+  .language-picker {gap:6px}
 }
 @media(prefers-reduced-motion:reduce) {* {transition:none!important}}

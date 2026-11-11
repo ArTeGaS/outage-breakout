@@ -1,15 +1,18 @@
-import {Game} from './engine.js?v=20261111b';
+import {Game} from './engine.js?v=20261111c';
+import {messages} from './i18n.js?v=20261111c';
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 const root=document.documentElement, canvas=$('#game'), ctx=canvas.getContext('2d');
-let skin='kyiv',theme='dark',notificationUntil=0,last=0,manual=false,pendingViewportFit=false;
-try {skin=localStorage.getItem('outage-skin')||skin;theme=localStorage.getItem('outage-theme')||theme} catch {}
+let skin='kyiv',theme='dark',language='uk',notificationKey='',notificationUntil=0,last=0,manual=false,pendingViewportFit=false;
+try {skin=localStorage.getItem('outage-skin')||skin;theme=localStorage.getItem('outage-theme')||theme;language=localStorage.getItem('outage-language')||language} catch {}
 const params=new URLSearchParams(location.search);
 skin=params.get('skin')||skin;theme=params.get('theme')||theme;
 if(!['dtek','kyiv'].includes(skin)) skin='kyiv';
 if(!['light','dark'].includes(theme)) theme='dark';
+if(!['uk','en','ru'].includes(language)) language='uk';
+const t=()=>messages[language];
 let colors={};
 const game=new Game({
-  onUpdate:()=>{notificationUntil=performance.now()+2600;$('#notification').textContent='Графік оновлено'},
+  onUpdate:()=>{notificationUntil=performance.now()+2600;notificationKey='updated';$('#notification').textContent=t().updated},
   onChange:()=>sync()
 });
 // Read-only state and deterministic clock are used by browser tests.
@@ -19,9 +22,8 @@ window.advanceTime=ms=>{manual=true;game.advance(ms);sync();draw()};
 function applyAppearance() {
   root.dataset.skin=skin;root.dataset.theme=theme;
   $$('[data-skin-choice]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.skinChoice===skin)));
-  const next=theme==='dark'?'світлу':'темну';
-  $('#theme-toggle').setAttribute('aria-label',`Увімкнути ${next} тему`);
-  $('#theme-toggle').title=theme==='dark'?'Світла тема':'Темна тема';
+  $('#theme-toggle').setAttribute('aria-label',theme==='dark'?t().enableLight:t().enableDark);
+  $('#theme-toggle').title=theme==='dark'?t().lightTheme:t().darkTheme;
   $('#theme-toggle').innerHTML=theme==='dark'
     ? '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 1v3m0 16v3M1 12h3m16 0h3M4.2 4.2l2.1 2.1m11.4 11.4 2.1 2.1M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>'
     : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15A9 9 0 0 1 9 4 9 9 0 1 0 20 15Z"/></svg>';
@@ -66,17 +68,18 @@ function sync() {
   if(pendingViewportFit&&!['playing','paused'].includes(game.mode)) {
     pendingViewportFit=false;queueMicrotask(resize);
   }
-  $('#light-stat').textContent=`${(game.lit/2).toLocaleString('uk-UA')} / 24 год`;
+  $('#light-stat').textContent=`${(game.lit/2).toLocaleString(t().lang)} / 24 ${t().hours}`;
   $('#score-stat').textContent=game.score;$('#lives-stat').textContent=game.lives;
   $('#pause').disabled=!['playing','paused'].includes(game.mode);
   $('#pause').textContent=game.mode==='paused'?'▷':'Ⅱ';
-  $('#pause').setAttribute('aria-label',game.mode==='paused'?'Продовжити':'Пауза');
+  $('#pause').setAttribute('aria-label',game.mode==='paused'?t().resume:t().pause);
+  $('#pause').title=game.mode==='paused'?t().resume:t().pause;
   $('#overlay').hidden=game.mode==='playing';
   const content={
-    ready:['','Відбивайте м’яч і вмикайте світло.','Почати гру'],
-    serve:['М’яч втрачено',`Залишилось спроб: ${game.lives}.`,'Продовжити'],
-    paused:['Пауза','','Продовжити'],
-    over:['Гру завершено',`Рахунок: ${game.score}.`,'Зіграти ще раз']
+    ready:['',t().ready,t().start],
+    serve:[t().lost,t().remaining(game.lives),t().resume],
+    paused:[t().pause,'',t().resume],
+    over:[t().over,t().final(game.score),t().again]
   }[game.mode];
   if(content) {
     $('#overlay-title').textContent=content[0];$('#overlay-title').hidden=!content[0];
@@ -167,7 +170,7 @@ async function fullscreen() {
   try {
     if(document.fullscreenElement) await document.exitFullscreen();
     else if($('.game-shell').requestFullscreen) await $('.game-shell').requestFullscreen();
-    else {game.pause();$('#notification').textContent='Повний екран недоступний у цьому браузері';notificationUntil=performance.now()+2500}
+    else {game.pause();notificationKey='unavailable';$('#notification').textContent=t().unavailable;notificationUntil=performance.now()+2500}
   } catch {game.pause()}
 }
 $('#fullscreen').addEventListener('click',fullscreen);
@@ -194,4 +197,25 @@ function frame(time) {
     game.ball.y+game.ball.r<Math.min(game.paddle.y,game.heightForLimit(game.maxCanvasHeight)-29)-2) resize();
   draw();requestAnimationFrame(frame);
 }
-applyAppearance();document.fonts.ready.then(draw);requestAnimationFrame(frame);
+function applyLanguage() {
+  const m=t();root.lang=language;document.title=`${m.title} — ${m.game}`;
+  $('meta[name="description"]').content=m.description;
+  $('.heading p').textContent=m.game;$('.heading h1').textContent=m.title;
+  $('[data-skin-choice="kyiv"]').textContent=m.kyiv;
+  $('.appearance').setAttribute('aria-label',m.appearance);$('.skin-picker').setAttribute('aria-label',m.style);
+  $('.game-shell').setAttribute('aria-label',m.game);$('.action-buttons').setAttribute('aria-label',m.controls);
+  const labels=$$('.stats span');[m.light,m.score,m.lives].forEach((v,i)=>labels[i].textContent=v);
+  $('.legend').setAttribute('aria-label',m.legend);$('.legend span:nth-child(1)').lastChild.textContent=m.off;$('.legend span:nth-child(2)').lastChild.textContent=m.on;
+  $('.controls-hint').textContent=m.hint;$('footer > span').textContent=m.unofficial;$('#about-open').textContent=m.about;
+  $('.language-picker').setAttribute('aria-label',({uk:'Мова',en:'Language',ru:'Язык'})[language]);
+  $('#about-close').setAttribute('aria-label',m.close);$('#about h2').textContent=m.title;
+  $$('#about p').forEach((el,i)=>el.textContent=[m.about1,m.about2,m.about3][i]);
+  canvas.setAttribute('aria-label',m.field);$('#restart').setAttribute('aria-label',m.restart);$('#restart').title=m.restart;
+  $('#fullscreen').setAttribute('aria-label',m.fullscreen);$('#fullscreen').title=m.fullscreen;
+  if(notificationKey)$('#notification').textContent=m[notificationKey];
+  $$('[data-language]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.language===language)));
+  try {localStorage.setItem('outage-language',language)} catch {}
+  applyAppearance();
+}
+$$('[data-language]').forEach(el=>el.addEventListener('click',()=>{language=el.dataset.language;applyLanguage()}));
+applyLanguage();document.fonts.ready.then(draw);requestAnimationFrame(frame);
